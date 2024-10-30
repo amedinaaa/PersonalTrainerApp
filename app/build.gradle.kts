@@ -62,6 +62,9 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.constraintlayout:constraintlayout-compose:1.0.1")
     implementation("androidx.compose.material3:material3-window-size-class:1.1.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    // Open source library - Compose Form: https://betterprogramming.pub/advanced-forms-in-android-with-compose-form-154ee0bff65b
+//    implementation("com.github.benjamin-luescher:compose-form:0.2.8")
     testImplementation("junit:junit:4.13.2")
 
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
