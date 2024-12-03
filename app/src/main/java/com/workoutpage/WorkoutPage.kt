@@ -22,6 +22,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,6 +35,9 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.workoutpage.model.ExerciseModel
+import com.workoutpage.model.TileData
+import com.workoutpage.viewmodel.WorkoutViewModel
 import kotlinx.serialization.Serializable
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -42,14 +46,14 @@ import java.util.Calendar
 
 // represents tile data
 // @Serializable
-data class TileData(
-    val name: String,
-    val weight: Double,
-    val sets: Int,
-    val reps: Int,
-    val time: Int,
-    val speed: Double
-)
+//data class TileData(
+//    val name: String,
+//    val weight: Double,
+//    val sets: Int,
+//    val reps: Int,
+//    val time: Int,
+//    val speed: Double
+//)
 /*      this needs to be muted temporarily
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -66,10 +70,8 @@ class MainActivity : ComponentActivity() {
 // **************************************************************************
 
 @Composable
-fun WorkoutPage(
-    navController: NavController,
-    displayedExercises: List<Exercise>
-) {
+fun WorkoutPage(navController: NavController, displayedExercises: List<Exercise>
+                ,workoutViewModel: WorkoutViewModel) {
     // basic structure for the page - pass in navController for buttons
     Scaffold(
         topBar = {
@@ -86,7 +88,7 @@ fun WorkoutPage(
                     .padding(innerPadding)
             ) {
                 SharedContent()
-                WorkoutTiles(displayedExercises)
+                WorkoutTiles(workoutViewModel)
             }
         }
 
@@ -207,10 +209,14 @@ fun SharedContent() {
  *          handle navigation to an Exercise card
  */
 @Composable
-fun WorkoutTiles(exercises: List<Exercise>) {
+fun WorkoutTiles(viewModel: WorkoutViewModel) {
     // create the local navController
     val navTileController = rememberNavController()
 
+    // sample data
+    // TODO: hook up the real data and delete this section
+
+    val tiles = viewModel.tiles.observeAsState(initial = emptyList())
     // Setting up the local NavHost with the Exercise card as the destination
     // NO OUTSIDE NAVIGATION - primary button navigation is handed on the fitness page
     NavHost(
@@ -220,27 +226,27 @@ fun WorkoutTiles(exercises: List<Exercise>) {
             .padding(4.dp)
     ) {
         // local home screen route
-        composable("workout") { TileList(exercises, navTileController) }
+        composable("workout") { TileList(tiles.value, navTileController) }
 
         // route to the Exercise card and pass in the arguments
         // TODO: update this for more complex data
-        composable("exercise/{title}/{sets}/{reps}") { backStackEntry ->
+        composable("exercise/{title}/{weight}/{sets}/{reps}") { backStackEntry ->
             val title = backStackEntry.arguments?.getString("title")
-            val weight = 120.0  //backStackEntry.arguments?.getString("weight")?.toDoubleOrNull()
+            val weight = backStackEntry.arguments?.getString("weight")?.toDoubleOrNull()
             val sets = backStackEntry.arguments?.getString("sets")?.toIntOrNull()
             val reps = backStackEntry.arguments?.getString("reps")?.toIntOrNull()
             val time = backStackEntry.arguments?.getString("time")?.toIntOrNull()
-            val distance = backStackEntry.arguments?.getString("distance")?.toDoubleOrNull()
-
+            val speed = backStackEntry.arguments?.getString("speed")?.toIntOrNull()
+            val exerciseModel = ExerciseModel(
+                title = title ?: "Exercise",
+                weight = weight ?: 0.0,
+                sets = sets ?: 1,
+                reps = reps ?: 0,
+                time = time ?: 0,
+                speed = speed ?: 0
+            )
             ExerciseCard(
-                navTileController, TileData(
-                    name = title?: "Exercise",
-                    weight?: 0.0,       // lbs
-                    sets?: 1,
-                    reps?: 1,
-                    time?: 125,            // sec
-                    distance?: 0.0      // miles
-                )
+                navTileController, exerciseModel
             )
         }
     }
@@ -250,11 +256,11 @@ fun WorkoutTiles(exercises: List<Exercise>) {
  *      populate the contents of one object for each tile
  */
 @Composable
-fun TileList(exercises: List<Exercise>, navTileController: NavController) {
+fun TileList(tiles: List<ExerciseModel>, navTileController: NavController) {
     LazyColumn {
-        items(exercises) { exercise ->
+        items(tiles) { tile ->
             // each individual tile
-            TileItem(exercise, navTileController)
+            TileItem(tile, navTileController)
         }
     }
 }
@@ -264,14 +270,14 @@ fun TileList(exercises: List<Exercise>, navTileController: NavController) {
  *      set the button click navigation
  */
 @Composable
-fun TileItem(exercise: Exercise, navTileController: NavController) {
+fun TileItem(tile: ExerciseModel, navTileController: NavController) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
             .clickable {
                 navTileController.navigate(
-                    "exercise/${exercise.name}/${exercise.numberOfSets}/${exercise.numberOfReps}"
+                    "exercise/${tile.title}/${tile.weight}/${tile.sets}/${tile.reps}"
                 )
             },
         shape = RoundedCornerShape(8.dp),
@@ -283,7 +289,7 @@ fun TileItem(exercise: Exercise, navTileController: NavController) {
             horizontalAlignment = Alignment.Start
         ) {
             Text(
-                text = "${exercise.name} ", //       ${tile.weight} lbs",
+                text = "${tile.title}       ${tile.weight} lbs",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
@@ -292,14 +298,13 @@ fun TileItem(exercise: Exercise, navTileController: NavController) {
                 modifier = Modifier.height(4.dp)
             )
             Text(
-                text = "${exercise.numberOfSets} sets of ${exercise.numberOfReps} repetitions",
+                text = "${tile.sets} sets of ${tile.reps} repetitions",
                 fontSize = 16.sp,
                 color = Color.DarkGray
             )
         }
     }
 }
-
 /** StatsButton - handle navigation to Summary page
  *      handle button click and navigation
  */

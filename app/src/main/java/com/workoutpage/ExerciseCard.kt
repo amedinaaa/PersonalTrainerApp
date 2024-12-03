@@ -1,5 +1,6 @@
 package com.workoutpage
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -29,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -41,6 +43,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.Graph
+import com.workoutpage.model.ExerciseModel
+import com.workoutpage.model.TileData
 
 /** ExerciseCard - create the body of the the card
  *      Inputs: navController & TileData
@@ -49,7 +54,7 @@ import androidx.navigation.NavController
  *      fill in the values
  */
 @Composable
-fun ExerciseCard(navController: NavController, data: TileData) {
+fun ExerciseCard(navController: NavController, data: ExerciseModel) {
     // outer container - the padding makes the card fit well
     Surface(
         modifier = Modifier.padding(4.dp)
@@ -121,14 +126,14 @@ fun ExerciseCard(navController: NavController, data: TileData) {
  *      outline the exercise goal
  */
 @Composable
-fun ExerciseTextBody(data: TileData) {
+fun ExerciseTextBody(data: ExerciseModel) {
     Text(
         text = "Get Yourself Ready!",
         modifier = Modifier.padding(20.dp, 8.dp),
         fontSize = 36.sp
     )
     Text(
-        text = data.name,
+        text = data.title,
         modifier = Modifier.padding(8.dp, 4.dp),
         fontSize = 28.sp
     )
@@ -144,14 +149,14 @@ fun ExerciseTextBody(data: TileData) {
  *      outline the exercise goal
  */
 @Composable
-fun ExerciseTextResistance(data: TileData) {
+fun ExerciseTextResistance(data: ExerciseModel) {
     Text(
         text = "Let's Do This!",
         modifier = Modifier.padding(20.dp, 8.dp),
         fontSize = 36.sp
     )
     Text(
-        text = data.name,
+        text = data.title,
         modifier = Modifier.padding(8.dp, 4.dp),
         fontSize = 28.sp
     )
@@ -167,7 +172,7 @@ fun ExerciseTextResistance(data: TileData) {
  *      outline the exercise goal
  */
 @Composable
-fun ExerciseTextTime(data: TileData) {
+fun ExerciseTextTime(data: ExerciseModel) {
     val minutes: Int =  data.time / 60
     val seconds: Int = data.time % 60
 
@@ -177,7 +182,7 @@ fun ExerciseTextTime(data: TileData) {
         fontSize = 36.sp
     )
     Text(
-        text = data.name,
+        text = data.title,
         modifier = Modifier.padding(8.dp, 4.dp),
         fontSize = 28.sp
     )
@@ -202,7 +207,7 @@ fun ExerciseTextTime(data: TileData) {
  *      outline the exercise goal
  */
 @Composable
-fun ExerciseTextDistance(data: TileData) {
+fun ExerciseTextDistance(data: ExerciseModel) {
     Text(
         text = "Ready to go",
         modifier = Modifier.padding(20.dp, 8.dp),
@@ -214,7 +219,7 @@ fun ExerciseTextDistance(data: TileData) {
         fontSize = 36.sp
     )
     Text(
-        text = "${data.name} for ${data.speed} miles.",
+        text = "${data.title} for ${data.speed} miles.",
         modifier = Modifier.padding(8.dp, 4.dp),
         fontSize = 28.sp
     )
@@ -230,7 +235,7 @@ fun ExerciseTextDistance(data: TileData) {
  *      TODO: send back to the database
  */
 @Composable
-fun ExerciseInputsBody(data: TileData) {
+fun ExerciseInputsBody(data: ExerciseModel) {
     // Generated logic using chatGPT
     // List of MutableState for each TextField
     val repsFieldStates = remember { MutableList(data.sets) { mutableStateOf("") } }
@@ -330,14 +335,16 @@ fun ExerciseInputsBody(data: TileData) {
  *      TODO: send back to the database
  */
 @Composable
-fun ExerciseInputsResistance(data: TileData) {
+fun ExerciseInputsResistance(data: ExerciseModel) {
     // Generated logic using chatGPT
-    // List of MutableState for each TextField
     val repsFieldStates = remember { MutableList(data.sets) { mutableStateOf("") } }
     val weightFieldState = remember { MutableList(data.sets) { mutableStateOf("") } }
+
+    // List to store saved inputs
     val savedInputReps = remember { mutableStateListOf<Int>() }
     val savedInputWeights = remember { mutableStateListOf<Double>() }
-
+    var totalReps by remember { mutableIntStateOf(0) }
+    var totalWeight by remember { mutableDoubleStateOf(0.0) }
     // list for each input field
     for (set in 1 .. data.sets) {
         Column {
@@ -366,8 +373,7 @@ fun ExerciseInputsResistance(data: TileData) {
                     onValueChange = {
                         repsFieldStates[set - 1].value = it
                     },
-                    modifier = Modifier
-                        .width(48.dp)
+                    modifier = Modifier.width(48.dp)
                         .height(28.dp)
                         .padding(12.dp),
                     keyboardOptions = KeyboardOptions.Default.copy(
@@ -387,8 +393,7 @@ fun ExerciseInputsResistance(data: TileData) {
                     onValueChange = {
                         weightFieldState[set - 1].value = it
                     },
-                    modifier = Modifier
-                        .width(52.dp)
+                    modifier = Modifier.width(52.dp)
                         .height(32.dp)
                         .padding(4.dp),
                     keyboardOptions = KeyboardOptions.Default.copy(
@@ -402,8 +407,7 @@ fun ExerciseInputsResistance(data: TileData) {
                 )
                 // create a save button for this input
                 FilledIconButton(
-                    modifier = Modifier
-                        .padding(8.dp, 0.dp)
+                    modifier = Modifier.padding(8.dp, 0.dp)
                         .size(32.dp),
                     onClick = {
                         // Save current inputs to the savedInputs list
@@ -411,6 +415,11 @@ fun ExerciseInputsResistance(data: TileData) {
                         savedInputReps.addAll(repsFieldStates.map { it.value.toIntOrNull() ?: 0 })
                         savedInputWeights.clear()
                         savedInputWeights.addAll(weightFieldState.map { it.value.toDoubleOrNull() ?: 0.0 })
+                        // Update totals
+                        totalReps = savedInputReps.sum()
+                        totalWeight = savedInputWeights.sum()
+                        Graph.tiltDataViewModel.insertOrUpdateTileData(TileData(data.title,totalWeight,data.sets,totalReps))
+                        Log.d("savedWeights",data.sets.toString() +" "+totalReps.toString() +" | "+totalWeight.toString())
                     },
                 ) {
                     Icon(
@@ -423,14 +432,29 @@ fun ExerciseInputsResistance(data: TileData) {
                 )
                 // create an edit button for this input
                 FilledIconButton(
-                    modifier = Modifier
-                        .padding(8.dp, 0.dp)
-                        .size(32.dp),
+                    modifier = Modifier.padding(4.dp, 0.dp)
+                        .size(28.dp),
                     onClick = {
-                        // Set the saved value to zero
-                        savedInputReps[set - 1] = 0
-                        savedInputWeights[set - 1] = 0.0
-                    }
+                        /*
+                        // savedInputReps.clear()
+                        if (repsFieldStates.isNotEmpty())
+                        {
+                            repsFieldStates.removeLast()
+                        //repsFieldStates.map { it.value.toIntOrNull() ?: 0 })
+                        }
+                        else {
+                            // do nothing
+                        }
+                        // savedInputWeights.clear()
+                        if (weightFieldState.isNotEmpty())
+                        {
+                            weightFieldState.removeLast()
+                            // savedInputWeights.addAll(weightFieldState.map { it.value.toDoubleOrNull() ?: 0.0 })
+                        }
+                        else {
+                            // do nothing
+                        }*/
+                    },
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Edit,
@@ -457,7 +481,7 @@ fun ExerciseInputsResistance(data: TileData) {
  *      TODO: send back to the database
  */
 @Composable
-fun ExerciseInputsTime(data: TileData) {
+fun ExerciseInputsTime(data: ExerciseModel) {
     // save as seconds an convert to minutes/seconds for display
     val savedInputMinutes = remember { mutableStateOf("") }
     val savedInputSeconds = remember { mutableStateOf("") }
@@ -571,7 +595,7 @@ fun ExerciseInputsTime(data: TileData) {
  *      TODO: send back to the database
  */
 @Composable
-fun ExerciseInputsDistance(data: TileData) {
+fun ExerciseInputsDistance(data: ExerciseModel) {
     // List to store saved inputs
     // save as seconds an convert to minutes/seconds for display
     val savedInputDistance = remember { mutableStateOf("") }
