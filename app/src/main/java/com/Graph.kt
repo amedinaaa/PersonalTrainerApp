@@ -13,6 +13,7 @@ import com.database.repositories.FitnessPlanRepository
 import com.database.repositories.ProfileRepository
 import com.database.repositories.UserRepository
 import com.database.repositories.WorkoutRepository
+import com.workoutpage.viewmodel.WorkoutViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -26,7 +27,9 @@ object Graph {
     val profileRepository by lazy{
         ProfileRepository(profileDao = database.profileDao())
     }
-
+    val tiltDataViewModel by lazy{
+        WorkoutViewModel( database.tileDao() )
+    }
     val userRepository by lazy{
         UserRepository(userDao = database.userDao())
     }
@@ -56,6 +59,7 @@ object Graph {
     fun provide(context: Context){
         Log.d("Graph", "initializing database")
         database = Room.databaseBuilder(context, AppDatabase::class.java, "personal-trainer.db")
+            .fallbackToDestructiveMigration()
             .addCallback(object : RoomDatabase.Callback() {
                 override fun onCreate(db: SupportSQLiteDatabase) {
                     super.onCreate(db)
